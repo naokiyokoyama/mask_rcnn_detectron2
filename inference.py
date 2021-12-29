@@ -35,16 +35,18 @@ class MaskRcnnInference:
 
         self.metadata = self.generate_metadata()
         self.cfg = self.generate_cfg()
+        print("Loading predictor...")
         self.predictor = DefaultPredictor(self.cfg)
+        print("Predictor loaded.")
 
-        # Get resize transform
+        # Get resize transform (stolen from detectron2 COCOEvaluator)
         self.resize_edge = T.ResizeShortestEdge(short_edge_length=800, max_size=1333)
 
     def generate_metadata(self):
         if not osp.isfile(CLASSES_TXT):
             assert self.coco_json is not None, (
                 f"{CLASSES_TXT} does not exist; locate COCO format train dataset json "
-                "and re-run with -j command line arg to generate classes.txt"
+                "and re-run with -j command line arg to generate it automatically."
             )
             print("Parsing JSON file to determine classes list...")
             dataset_name = "test"
@@ -148,16 +150,25 @@ def main():
         vid = cv2.VideoCapture(test_data)
         total_num_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
         print(f"Starting inference on input video...")
+        out_vid = None
         pbar = tqdm.trange(total_num_frames)
         for idx in pbar:
             _, frame = vid.read()
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             vis_img, pred_time = mask_rcnn.visualize_inference(img, get_pred_time=True)
+
+            # Add pred_time to progress bar
             pbar.set_postfix(pred_time=round(pred_time, 4))
-            output_path = osp.join(output_dir, f'{idx:04}.png')
-            cv2.imwrite(output_path, vis_img)
+
+            # Use first frame to set up output video
+            if idx == 0:
+                out_vid_path = osp.join(output_dir, osp.basename(test_data))
+                four_cc = cv2.VideoWriter_fourcc(*'MP4V')
+                fps = vid.get(cv2.CAP_PROP_FPS)
+                height, width = vis_img.shape[:2]
+                out_vid = cv2.VideoWriter(out_vid_path, four_cc, fps, (width, height))
+            out_vid.write(vis_img)
+
 
 if __name__ == "__main__":
     main()
-
-

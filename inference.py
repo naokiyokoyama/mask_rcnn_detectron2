@@ -60,7 +60,7 @@ class MaskRcnnInference:
 
         metadata = Metadata()
         with open(CLASSES_TXT) as f:
-            thing_classes = f.read().splitlines()
+            thing_classes = [i for i in f.read().splitlines() if i != ""]
         print(f"Classes have been read from {CLASSES_TXT}.")
         metadata.set(thing_classes=thing_classes)
 

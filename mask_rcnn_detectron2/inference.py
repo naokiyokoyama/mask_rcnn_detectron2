@@ -21,7 +21,7 @@ my_metadata.set(thing_classes=["dog", "cat"])
 
 CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 THIS_DIR = osp.dirname(osp.abspath(__file__))
-CLASSES_TXT = osp.join(THIS_DIR, "classes.txt")
+CLASSES_TXT = osp.join(THIS_DIR, "../classes.txt")
 
 IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
 VIDEO_EXTENSIONS = ["mp4", "mov"]

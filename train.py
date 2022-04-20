@@ -4,19 +4,20 @@ import os.path as osp
 
 from detectron2 import model_zoo
 from detectron2.config import get_cfg
+from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import register_coco_instances
-from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator
 
 MODEL_TYPE = "new_baselines/mask_rcnn_R_101_FPN_400ep_LSJ.py"
 CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 
+
 class CocoTrainer(DefaultTrainer):
-  @classmethod
-  def build_evaluator(cls, cfg, dataset_name, output_folder="coco_eval"):
-    os.makedirs(output_folder, exist_ok=True)
-    return COCOEvaluator(dataset_name, ["bbox"], False, output_folder)
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name, output_folder="coco_eval"):
+        os.makedirs(output_folder, exist_ok=True)
+        return COCOEvaluator(dataset_name, ["bbox"], False, output_folder)
 
 
 def main():
@@ -32,6 +33,7 @@ def main():
     parser.add_argument(
         "val_images_dir", help="path to val directory containing images"
     )
+    parser.add_argument("-p", "--prefix")
     args = parser.parse_args()
 
     train_images_dir = args.train_images_dir
@@ -46,16 +48,23 @@ def main():
         train_dataset_name, {}, train_coco_json_path, train_images_dir
     )
     register_coco_instances(val_dataset_name, {}, val_coco_json_path, val_images_dir)
-    train(train_dataset_name, val_dataset_name)
+    train(train_dataset_name, val_dataset_name, args.prefix)
 
 
-def train(train_dataset_name, val_dataset_name):
+def train(train_dataset_name, val_dataset_name, prefix=None):
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file(CONFIG))
     cfg.DATASETS.TRAIN = (train_dataset_name,)
     cfg.DATASETS.TEST = (val_dataset_name,)
     cfg.DATALOADER.NUM_WORKERS = 4
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(MODEL_TYPE)  # pretrained weights
+
+    if prefix is not None:
+        out_dir = osp.abspath(cfg["OUTPUT_DIR"])
+        dirname = osp.dirname(out_dir)
+        basename = osp.basename(out_dir)
+        new_basename = prefix + "_" + basename
+        cfg["OUTPUT_DIR"] = osp.join(dirname, new_basename)
 
     # Number of images per batch across all machines.
     cfg.SOLVER.IMS_PER_BATCH = 4

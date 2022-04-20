@@ -21,7 +21,7 @@ my_metadata.set(thing_classes=["dog", "cat"])
 
 CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 THIS_DIR = osp.dirname(osp.abspath(__file__))
-CLASSES_TXT = osp.join(THIS_DIR, "classes.txt")
+CLASSES_TXT = osp.join(THIS_DIR, "../classes.txt")
 
 IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
 VIDEO_EXTENSIONS = ["mp4", "mov"]
@@ -47,6 +47,7 @@ class MaskRcnnInference:
             assert self.coco_json is not None, (
                 f"{CLASSES_TXT} does not exist; locate COCO format train dataset json "
                 "and re-run with -j command line arg to generate it automatically."
+                "Or, manually create the file by listing class names on each line."
             )
             print("Parsing JSON file to determine classes list...")
             dataset_name = "test"
@@ -60,7 +61,7 @@ class MaskRcnnInference:
 
         metadata = Metadata()
         with open(CLASSES_TXT) as f:
-            thing_classes = f.read().splitlines()
+            thing_classes = [i for i in f.read().splitlines() if i != ""]
         print(f"Classes have been read from {CLASSES_TXT}.")
         metadata.set(thing_classes=thing_classes)
 

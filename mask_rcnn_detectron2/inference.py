@@ -29,7 +29,7 @@ class MaskRcnnInference:
         self,
         weights_file,
         coco_json=None,
-        min_size_test=None,
+        min_size_test=800,
         score_thresh=0.7,
         config_path=R_101_CONFIG,
         device=None,

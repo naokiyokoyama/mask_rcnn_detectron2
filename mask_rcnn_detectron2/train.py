@@ -9,9 +9,6 @@ from detectron2.data.datasets import register_coco_instances
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator
 
-MODEL_TYPE = "new_baselines/mask_rcnn_R_101_FPN_400ep_LSJ.py"
-CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
-
 
 class CocoTrainer(DefaultTrainer):
     @classmethod
@@ -34,6 +31,9 @@ def main():
         "val_images_dir", help="path to val directory containing images"
     )
     parser.add_argument("-p", "--prefix")
+    parser.add_argument("--shrink", action="store_true")
+    parser.add_argument("--normal", action="store_true")
+    parser.add_argument("--fast", action="store_true")
     args = parser.parse_args()
 
     train_images_dir = args.train_images_dir
@@ -48,10 +48,30 @@ def main():
         train_dataset_name, {}, train_coco_json_path, train_images_dir
     )
     register_coco_instances(val_dataset_name, {}, val_coco_json_path, val_images_dir)
-    train(train_dataset_name, val_dataset_name, args.prefix)
+    train(
+        train_dataset_name,
+        val_dataset_name,
+        args.fast,
+        args.prefix,
+        args.shrink,
+        args.normal,
+    )
 
 
-def train(train_dataset_name, val_dataset_name, prefix=None):
+def train(
+    train_dataset_name,
+    val_dataset_name,
+    fast=False,
+    prefix=None,
+    shrink=False,
+    normal=False,
+):
+    if fast:
+        MODEL_TYPE = "new_baselines/mask_rcnn_R_50_FPN_400ep_LSJ.py"
+        CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
+    else:
+        MODEL_TYPE = "new_baselines/mask_rcnn_R_101_FPN_400ep_LSJ.py"
+        CONFIG = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file(CONFIG))
     cfg.DATASETS.TRAIN = (train_dataset_name,)
@@ -66,6 +86,12 @@ def train(train_dataset_name, val_dataset_name, prefix=None):
         new_basename = prefix + "_" + basename
         cfg["OUTPUT_DIR"] = osp.join(dirname, new_basename)
 
+    if shrink:
+        cfg.INPUT.MIN_SIZE_TRAIN = (240,)
+
+    if normal:
+        cfg.INPUT.MIN_SIZE_TRAIN = (480,)
+
     # Number of images per batch across all machines.
     cfg.SOLVER.IMS_PER_BATCH = 4
     # cfg.SOLVER.MAX_ITER = 1500  # No. of iterations
@@ -78,7 +104,7 @@ def train(train_dataset_name, val_dataset_name, prefix=None):
 
     # No. of iterations after which the Validation Set is evaluated.
     cfg.TEST.EVAL_PERIOD = 2500
-    cfg.SOLVER.CHECKPOINT_PERIOD = 2500
+    cfg.SOLVER.CHECKPOINT_PERIOD = 100
     print("Output dir:", cfg.OUTPUT_DIR)
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     print("Config:\n", cfg)

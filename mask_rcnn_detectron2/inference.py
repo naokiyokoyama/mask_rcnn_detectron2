@@ -31,7 +31,7 @@ class MaskRcnnInference:
         coco_json=None,
         min_size_test=800,
         score_thresh=0.7,
-        config_path=R_101_CONFIG,
+        config_path="101",
         device=None,
     ):
         self.weights_file = weights_file
@@ -39,6 +39,10 @@ class MaskRcnnInference:
         self.score_thresh = score_thresh
 
         self.metadata = self.generate_metadata()
+        if config_path == "101":
+            config_path = R_101_CONFIG
+        elif config_path == "50":
+            config_path = R_50_CONFIG
         self.cfg = self.generate_cfg(config_path)
         if device is not None:
             self.cfg.MODEL.DEVICE = device
